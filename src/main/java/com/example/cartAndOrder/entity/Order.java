@@ -9,7 +9,7 @@ public class Order {
     private String oId;
     private String uId;
     private Date date;
-    private List<Product> orderList;
+    private List<OrderedProducts> orderList;
     private double totalPrice;
     private int totalItems;
 }

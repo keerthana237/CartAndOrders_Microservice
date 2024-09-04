@@ -14,9 +14,9 @@ public interface CartService {
     public boolean updateQuantity(String cId,String pId,String sId,int newQuantity);
     public boolean deleteItem(String cId,String pId,String sId);
     public List<CartProductDto> getItems(String cId);
-    public double getTotal(String cId);
-
-
+    public double getTotalPrice(String cId);
+    public int getTotalItemCount(String cId);
+    public boolean checkout(String cId);
 
 
     }

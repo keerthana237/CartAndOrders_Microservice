@@ -35,7 +35,7 @@ public class CartController {
 //            return new ResponseEntity<>(new ApiResponse<>(true,"Item Added"), HttpStatus.OK);
             return new ResponseEntity<>(new ApiResponse<>("Item Added"),HttpStatus.OK);
         }
-        return new ResponseEntity<>(new ApiResponse<>("Item not Found"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiResponse<>(false,"Item not Found"),HttpStatus.BAD_REQUEST);
     }
 
     @CrossOrigin
@@ -44,7 +44,7 @@ public class CartController {
         if(cartService.updateQuantity(cId,pId,sId,newQuantity)){
             return new ResponseEntity<>(new ApiResponse<>("Item Quantity Updated"), HttpStatus.OK);
         }
-        return new ResponseEntity<>(new ApiResponse<>("Could not update quantity"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiResponse<>(false,"Could not update quantity"),HttpStatus.BAD_REQUEST);
     }
     @CrossOrigin
     @DeleteMapping("/deleteItem")
@@ -52,7 +52,7 @@ public class CartController {
         if(cartService.deleteItem(cId,pId,sId)){
             return new ResponseEntity<>(new ApiResponse<>("Item Deleted"), HttpStatus.OK);
         }
-        return new ResponseEntity<>(new ApiResponse<>("Item does not Exist"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiResponse<>(false,"Item does not Exist"),HttpStatus.BAD_REQUEST);
     }
     @CrossOrigin
     @GetMapping("/getItems")
@@ -64,7 +64,36 @@ public class CartController {
         return new ResponseEntity<>(new ApiResponse<>(cartProductDtoList),HttpStatus.OK);
     }
 
+    @CrossOrigin
+    @GetMapping("/getTotalPrice")
+    public ResponseEntity<ApiResponse<Double>> getTotalPrice(@RequestParam String cId){
+        double totalPrice=cartService.getTotalPrice(cId);
+        return new ResponseEntity<>(new ApiResponse<>(totalPrice),HttpStatus.OK);
+    }
+
+    @CrossOrigin
+    @GetMapping("/getItemCount")
+    public ResponseEntity<ApiResponse<Integer>> getTotalItemCount(@RequestParam String cId){
+        int totalCount=cartService.getTotalItemCount(cId);
+        return new ResponseEntity<>(new ApiResponse<>(totalCount),HttpStatus.OK);
+    }
+
+
+    @CrossOrigin
+    @PostMapping("/checkout")
+    public ResponseEntity<ApiResponse<String>> checkoutCart(@RequestParam String cId){
+        if(cartService.checkout(cId)){
+            return new ResponseEntity<>(new ApiResponse<>("Successfully Checked Out"),HttpStatus.OK);
+        }
+        return new ResponseEntity<>(new ApiResponse<>(false,"Could Not CheckOut"),HttpStatus.OK);
+    }
+
+
+
+
+
 //    @CrossOrigin
 //    @GetMapping("/getTotal")
+
 
 }

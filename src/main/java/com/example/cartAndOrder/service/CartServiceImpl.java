@@ -6,6 +6,7 @@ import com.example.cartAndOrder.Dto.CartProductDto;
 import com.example.cartAndOrder.Dto.ProductDto;
 import com.example.cartAndOrder.ProductClientInterface;
 import com.example.cartAndOrder.entity.Cart;
+import com.example.cartAndOrder.entity.OrderedProducts;
 import com.example.cartAndOrder.entity.Product;
 import com.example.cartAndOrder.entity.Seller;
 import com.example.cartAndOrder.repository.CartRepository;
@@ -25,6 +26,9 @@ public class CartServiceImpl implements  CartService {
 
     @Autowired
     CartRepository cartRepository;
+
+    @Autowired
+    OrderService orderService;
 
     @Autowired
     ProductClientInterface productClientInterface;
@@ -57,24 +61,21 @@ public class CartServiceImpl implements  CartService {
     }
 
     public List<CartProductDto> getItems(String cId){
-        System.out.println("inside getItems");
         Optional<Cart> optionalCart=cartRepository.findById(cId);
         List<CartProductDto> cartProductDtoList=new ArrayList<>();
         if(optionalCart.isPresent()){
             Cart cart=optionalCart.get();
             List<Product> prodList=cart.getProductList();
             for (Product product : prodList) {
-                System.out.println("beforeFeign");
-                ResponseEntity<ApiResponse<ProductDto>> responseEntity=productClientInterface.findById("dedd06aa-7b5e-4bc0-99a1-cac863fbe6e9");
-                System.out.println("response:"+responseEntity);
-                System.out.println("afterfeign");
+                ResponseEntity<ApiResponse<ProductDto>> responseEntity=productClientInterface.findById(product.getPId());
                 ProductDto productDto=responseEntity.getBody().getData();
                 System.out.println(productDto);
                 CartProductDto cartProductDto=new CartProductDto();
-                BeanUtils.copyProperties(productDto,cartProductDto);
                 BeanUtils.copyProperties(product,cartProductDto);
+                BeanUtils.copyProperties(productDto,cartProductDto);
+                cartProductDto.setCId(cId);
                 for (Seller seller : productDto.getSeller()) {
-                    if(seller.getSId().equals("SELLER002")){
+                    if(seller.getSId().equals(product.getSId())){
                         BeanUtils.copyProperties(seller,cartProductDto);
                     }
                 }
@@ -124,8 +125,8 @@ public class CartServiceImpl implements  CartService {
         }
         return false;
     }
-
-    public double getTotal(String cId){
+    @Override
+    public double getTotalPrice(String cId){
         Optional<Cart> optionalCart=cartRepository.findById(cId);
         double total=0;
         if(optionalCart.isPresent()){
@@ -133,26 +134,49 @@ public class CartServiceImpl implements  CartService {
             if(!cart.getProductList().isEmpty()) {
                 List<CartProductDto> li = getItems(cart.getCId());
                 for (CartProductDto cartproductDto : li) {
-                    total += cartproductDto.getPrice();
+                    double price= cartproductDto.getPrice();
+                    total+=(price*cartproductDto.getQuantity());
                 }
             }
         }
         return total;
     }
-
-//    public boolean checkoutCart(String cId) {
-//
-//
-//
-//        //update stock
-//        //create order
-//        //empty cart content to order
-//        //fire notification api?
-//        //add orderId to user list
-//
-//
-//
-//
-//    }
+    @Override
+    public int getTotalItemCount(String cId){
+        Optional<Cart> optionalCart=cartRepository.findById(cId);
+        int totalCount=0;
+        if(optionalCart.isPresent()){
+            Cart cart=optionalCart.get();
+            totalCount=cart.getProductList().size();
+        }
+        return totalCount;
+    }
+    @Override
+    public boolean checkout(String cId) {
+        Optional<Cart> optionalCart=cartRepository.findById(cId);
+        if(optionalCart.isPresent()){
+            Cart cart=optionalCart.get();
+            List<CartProductDto> cartProductDtoList=getItems(cId);
+            List<OrderedProducts> orderedProductsList=new ArrayList<>();
+            for (CartProductDto cartProductDto : cartProductDtoList) {
+                productClientInterface.updateStock(cartProductDto.getPId(),cartProductDto.getSId(),cartProductDto.getQuantity());
+                OrderedProducts orderedProducts=new OrderedProducts();
+                BeanUtils.copyProperties(cartProductDto,orderedProducts);
+                orderedProductsList.add(orderedProducts);
+            }
+            double totalPrice=getTotalPrice(cId);
+            if(orderService.createOrder(orderedProductsList,cId,totalPrice)){
+                cart.setProductList(null);
+                cartRepository.save(cart);
+                return true;
+            }
+        }
+        return false;
+        //update stock done
+        //create order done
+        //empty cart content to order done
+        //fire notification api?
+        //add orderId to user list
+    }
 
 }
